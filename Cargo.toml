@@ -1,0 +1,20 @@
+[package]
+name = "adventofcode2016"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "day_01"
+path = "src/day_01.rs"
+
+[[bin]]
+name = "day_02"
+path = "src/day_02.rs"
+
+[[bin]]
+name = "day_03"
+path = "src/day_03.rs"
+
+[[bin]]
+name = "day_04"
+path = "src/day_04.rs"

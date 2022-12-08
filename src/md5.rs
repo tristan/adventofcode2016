@@ -37,19 +37,17 @@ fn leftrotate(x: u32, c: u32) -> u32 {
 }
 
 pub fn md5(mut bytes: Vec<u8>) -> Vec<u8> {
-    //let mut bytes = message.as_bytes().to_vec();
-    let bit_count = bytes.len().saturating_mul(8);
-    let zero_padding = 512 - (bit_count % 512) - 65;
+    let orig_len = bytes.len();
+    let extra_len = match orig_len % 64 {
+        0 => 64,
+        v if v >= 56 => 128 - v,
+        v => 64 - v
+    };
+    bytes.reserve(extra_len);
+    bytes.push(0x80);
+    bytes.resize(orig_len + extra_len - 8, 0x00);
 
-    let mut padding = vec![0; ((zero_padding - 7) / 8) + 1];
-    padding[0] = 0b10000000;
-
-    let msg_len_mod_2_64 = (0..64).step_by(8).map(|i| {
-        ((bit_count >> i) & 0xff) as u8
-    }).collect::<Vec<_>>();
-
-    padding.extend_from_slice(&msg_len_mod_2_64);
-    bytes.extend(padding.into_iter());
+    bytes.extend_from_slice(&orig_len.wrapping_mul(8).to_le_bytes());
 
     let (words, _): (Vec<u32>, _) = bytes.iter().enumerate()
         .fold((vec![], 0), |(mut r, v), (i, &b)| {
@@ -67,7 +65,7 @@ pub fn md5(mut bytes: Vec<u8>) -> Vec<u8> {
     let mut c0 = C0;
     let mut d0 = D0;
 
-    for chunk_offset in (0..words.len() / 16).step_by(16) {
+    for chunk_offset in (0..words.len()).step_by(16) {
         let mut a = a0;
         let mut b = b0;
         let mut c = c0;
@@ -136,6 +134,15 @@ mod test {
         );
         let r = md5(b"pqrstuv1048970".to_vec());
         assert_eq!(&r[..3], vec![0, 0, 6]);
-        assert_eq!(md5(vec![99, 120, 100, 110, 110, 121, 106, 119, 2, 5, 4]), vec![]);
+
+        assert_eq!(
+            md5(b"yjjvjganRLDRUDRDLUDUURDURLDLLRDLUUDDRRLDRLLRUUDLDURUURLD".to_vec()),
+            0x6a9e826bc19549ce9759ab5aac287585u128.to_be_bytes().to_vec(),
+        );
+
+        // just make sure it doesn't crash
+        md5(vec![99, 120, 100, 110, 110, 121, 106, 119, 2, 5, 4]);
+        md5(vec![121, 106, 106, 118, 106, 103, 97, 110, 82, 76, 68, 82, 85, 68, 82, 68, 76, 85, 68, 85, 85, 82, 68, 85, 82, 76, 68, 76, 76, 68, 68, 85, 85, 68, 85, 82, 82, 76, 76, 82, 68, 82, 85, 82, 85, 68, 68, 85, 68, 82, 76, 85, 82, 85, 68, 68]);
+        //assert!(false);
     }
 }
